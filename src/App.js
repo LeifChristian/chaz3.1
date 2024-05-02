@@ -1,103 +1,58 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
-const theCode = 8675309;
+
 const PWD = 8675309;
-const recognition = new (window.SpeechRecognition ||
-  window.webkitSpeechRecognition)();
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
 function App() {
   const inputRef = useRef(null);
   const [isRecording, setIsRecording] = useState(false);
   const [enteredText, setEnteredText] = useState("");
   const [theResponse, setResponse] = useState("");
-  const [finalTranscript, setFinalTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [conversationHistory, setConversationHistory] = useState("");
-  // const [showConversations, setShowConversations] = useState(true);
-  // const [isPasswordPromptVisible, setPasswordPromptVisible] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [rez, setRez] = useState("");
   const [isPasswordValidated, setPasswordValidated] = useState(false);
-  const [toggle, setToggle] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [showPlayPause, setShowPlayPause] = useState(false)
-
-useEffect(() => {
-  const inputElement = inputRef.current;
-
-  // Reset height first to ensure it can shrink if necessary.
-  inputElement.style.height = 'auto';
-
-  if (inputElement.scrollHeight > inputElement.clientHeight) {
-    inputElement.style.height = `${inputElement.scrollHeight}px`;
-  }
-}, [enteredText]);
-
+  const [toggle, setToggle] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlayPause, setShowPlayPause] = useState(false);
 
   useEffect(() => {
-    const handleWindowResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener("resize", handleWindowResize);
-
-    return () => {
-      window.removeEventListener("resize", handleWindowResize);
-    };
-  }, []);
+    const inputElement = inputRef.current;
+    inputElement.style.height = "auto";
+    if (inputElement.scrollHeight > inputElement.clientHeight) {
+      inputElement.style.height = `${inputElement.scrollHeight}px`;
+    }
+  }, [enteredText]);
 
   useEffect(() => {
-    const existingHistory = localStorage.getItem("conversationHistory");
-
-    if (existingHistory) {
-      const historyArray = existingHistory.split("|");
-      console.log(historyArray);
-      // ... Your code to handle existingHistory ...
-    } 
-  }, []);
-
-
-  useEffect(() => {
-    // Show password prompt only if password is not validated
     if (!isPasswordValidated) {
       const savedPassword = localStorage.getItem("appPassword");
-
       if (savedPassword && parseInt(savedPassword) === parseInt(PWD)) {
-        // Password is correct, continue with the app init
-        setPasswordValidated(true); 
+        setPasswordValidated(true);
       } else {
-        // Incorrect password or no password found in localStorage, prompt for password
         const pwdPrompt = () => {
-          var password = prompt("Enter the password");
-
+          const password = prompt("Enter the password");
           if (password === null) {
-            // The user clicked "Cancel" in the prompt
-            pwdPrompt(); // Show the password prompt again
+            pwdPrompt();
           } else if (parseInt(password) === parseInt(PWD)) {
-            // Password is correct, continue with the app initialization
-            localStorage.setItem("appPassword", password); // Save the password in localStorage
-            setPasswordValidated(true); 
+            localStorage.setItem("appPassword", password);
+            setPasswordValidated(true);
           } else {
-            // Incorrect password, prompt again
             alert("Incorrect password. Try again.");
             pwdPrompt();
           }
         };
-
         pwdPrompt();
       }
     }
-  }, [isPasswordValidated]); 
-  recognition.interimResults = true;
+  }, [isPasswordValidated]);
 
+  recognition.interimResults = true;
   recognition.onresult = (event) => {
     let interimTranscript = "";
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
       if (result.isFinal) {
-        setFinalTranscript(result[0].transcript);
         setEnteredText(result[0].transcript);
-        console.log(result[0].transcript);
         stopRecording();
         handleGreeting(result[0].transcript);
       } else {
@@ -106,7 +61,6 @@ useEffect(() => {
       }
     }
   };
-
   recognition.onerror = (event) => {
     console.error("Error with the speech recognition API:", event.error);
   };
@@ -115,12 +69,10 @@ useEffect(() => {
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
-
     if (isRecording) {
-      stopSpeakText()
+      stopSpeakText();
       return;
     }
-  
     setIsRecording(true);
     recognition.start();
   };
@@ -128,82 +80,57 @@ useEffect(() => {
   const stopRecording = () => {
     setIsRecording(false);
     recognition.stop();
-    // console.log(transcript);
   };
 
   const downloadConvo = () => {
     const existingHistory = localStorage.getItem("conversationHistory");
-  
     if (!existingHistory) {
       console.log("Nothing to export.");
       return;
     }
-  
-    // Create a Blob that contains the conversation history
     const conversationBlob = new Blob([existingHistory], { type: "text/plain;charset=utf-8" });
-
-  
-    // Create a URL that points to the Blob
     const blobUrl = URL.createObjectURL(conversationBlob);
-  
-    // Create a link that points to the URL and represents a download link
     const tempLink = document.createElement("a");
     tempLink.href = blobUrl;
-    let bob = prompt('Enter filename')
-
-bob!= null ? tempLink.download = `${bob}.txt` : tempLink.download ="conversation-history.txt"
+    const fileName = prompt("Enter filename");
+    tempLink.download = fileName ? `${fileName}.txt` : "conversation-history.txt";
     tempLink.style.display = "none";
-
-    if(bob==null){return}
-  
-    // Add the link to the document so it can be clicked
+    if (fileName === null) {
+      return;
+    }
     document.body.appendChild(tempLink);
-  
-    // Simulate a click on the link to start the download
     tempLink.click();
-  
-    // Clean up by removing the link and revoking the Blob URL
     document.body.removeChild(tempLink);
     URL.revokeObjectURL(blobUrl);
   };
 
   const convertToTimezoneOffset = (isoDateString) => {
-    // Create a new Date object from the ISO date string
     const date = new Date(isoDateString);
-  
-    // Get the current timezone offset in minutes
     const timezoneOffset = date.getTimezoneOffset() * -1;
-  
-    // Add the timezone offset to the date object (in milliseconds)
     const localDate = new Date(date.getTime() + timezoneOffset * 60000);
-  
-    // Return the local date as a string
     return localDate.toISOString();
-  }
+  };
 
   const handleGreeting = async (userInput) => {
     const date = new Date();
     const isoDateString = date.toISOString();
     const localISOString = convertToTimezoneOffset(isoDateString);
-  
     const existingHistory = localStorage.getItem("conversationHistory");
-    const newMessage = !existingHistory ? `Question: ${userInput}` : `Response: ${theResponse} ${localISOString}  Question: ${userInput}`;
+    const newMessage = !existingHistory
+      ? `Question: ${userInput}`
+      : `Response: ${theResponse} ${localISOString}  Question: ${userInput}`;
     let updatedHistory = existingHistory ? `${existingHistory} ${newMessage}` : `${newMessage}`;
-  
     if (existingHistory && existingHistory.includes(newMessage)) {
       console.log("Message already exists in history");
       return;
     }
-  
     updateConversationHistory(updatedHistory);
-  
     const payload = updatedHistory.replaceAll(
       ' <-- Text before this sentence is conversation history so far between you and me. Do NOT include timestamps in responses, timestamps provide context for when this conversation is taking place. responses will be spoken back to user using TTS. Using this information and context, answer the following question --> ',
       ''
     ).replaceAll('Response: "Response:', 'Response:')
       ? `${updatedHistory} <-- Text before this sentence is conversation history so far between you and me. Do NOT include timestamps in responses, timestamps provide context for when this conversation is taking place. responses will be spoken back to user using TTS. Using this information and context, answer the following question -->  "${userInput}"`
       : userInput;
-  
     try {
       const response = await fetch('http://localhost:3001/score', {
         method: 'POST',
@@ -212,24 +139,16 @@ bob!= null ? tempLink.download = `${bob}.txt` : tempLink.download ="conversation
         },
         body: JSON.stringify({ prompt: payload })
       });
-  
       if (response.ok) {
-        // const responseData = await response.json();
-        // setResponse(responseData.message);  // Assuming `setResponse` updates the UI with the new message
-        // console.log('Response:', responseData.message);
-
         const responseData = await response.json();
-        const reply = responseData.message; // Modify this line to extract the relevant response from the responseData object received from your backend
+        const reply = responseData.message;
         setResponse(reply);
         console.log('response --->', reply);
         speakText(reply);
-        pause()
-        setRez(reply);
-       let newUpdatedHistory = reply ? `${updatedHistory} Response: ${reply}` : `${updatedHistory}`;
-  
-       console.log(newUpdatedHistory, '<--- updated hist??')
-       updateConversationHistory(newUpdatedHistory)
-        
+        pause();
+        let newUpdatedHistory = reply ? `${updatedHistory} Response: ${reply}` : `${updatedHistory}`;
+        console.log(newUpdatedHistory, '<--- updated hist??');
+        updateConversationHistory(newUpdatedHistory);
       } else {
         const errorMessage = await response.text();
         console.error("Error:", errorMessage);
@@ -241,233 +160,193 @@ bob!= null ? tempLink.download = `${bob}.txt` : tempLink.download ="conversation
     }
   };
 
-  const speakText = (text) => {  
-    // using array of avaliable voices, currently set to british female
-    // it is of note that the default voice handles punctuation better
-
-    function removeUrls(text) { const urlPattern = /https?:\/\/[^\s]+/g;return text.replace(urlPattern, '');}
-      text = removeUrls(text);
-      console.log(text, 'clean text')
-                            
-setShowPlayPause(true);
-  if ("speechSynthesis" in window) {
-    if (toggle) {
-      setShowPlayPause(true);
-      return;
+  const speakText = (text) => {
+    function removeUrls(text) {
+      const urlPattern = /https?:\/\/[^\s]+/g;
+      return text.replace(urlPattern, '');
     }
-
-    // Function to split text into segments of around 35 words each or at sentence boundaries (including commas)
-// Function to split text into segments of around maxWordsPerSegment words each or at sentence boundaries (including commas and periods)
-
-const splitTextIntoSegments = (text) => {
-  const maxWordsPerSegment = 32; // Default chunk size
-  const sentences = text.split(/([.!?:])/); // Split by . ? ! : -
-
-  
-  const segments = [];
-  let currentSegment = "";
-
-  sentences.forEach((sentence) => {
-    if (sentence.match(/[.!?:]/)) {
-      // Sentence-ending punctuation found, reset the current segment and add the sentence to segments
-      if (currentSegment) {
-        segments.push(currentSegment);
-        currentSegment = "";
-      }
-      segments.push(sentence.trim());
-    } else {
-      // No sentence-ending punctuation, add words to the current segment
-      const words = sentence.split(/\s+/);
-
-      words.forEach((word) => {
-        if (currentSegment.split(/\s+/).length < maxWordsPerSegment) {
-          // Check for exceptions like ".com"
-          if (currentSegment.endsWith(".") && word === "com") {
-            currentSegment = currentSegment.slice(0, -1) + word;
-          } else {
-            currentSegment += (currentSegment ? " " : "") + word;
-          }
-        } else {
-          segments.push(currentSegment);
-          currentSegment = word;
-        }
-      });
-    }
-  });
-
-  // Add the last segment if it exists
-  if (currentSegment) {
-    segments.push(currentSegment);
-  }
-
-  return segments;
-};
-
-    const segments = splitTextIntoSegments(text, 32); // 35 words per segment
-    // Function to recursively synthesize the segments
-    const synthesizeSegments = () => {
-      if (segments.length === 0) {
-        // All segments have been synthesized
-        setShowPlayPause(false);
-	setIsPlaying(false);
+    text = removeUrls(text);
+    console.log(text, 'clean text');
+    setShowPlayPause(true);
+    if ("speechSynthesis" in window) {
+      if (toggle) {
+        setShowPlayPause(true);
         return;
       }
-
-      const segment = segments.shift();
-      const utterance = new SpeechSynthesisUtterance(segment.replaceAll('Response:', '').replaceAll('.', '').replaceAll('!', '').replaceAll('?', '').replaceAll(":",""));
-      utterance.voice = speechSynthesis.getVoices()[5]; // Set the desired voice
-      utterance.onend = synthesizeSegments; // Continue to the next segment when this one finishes
-      speechSynthesis.speak(utterance);
-    };
-
-    synthesizeSegments(); // Start the process
-  } else {
-    console.error("Speech synthesis is not supported or not ready");
-  }
-};
+      const splitTextIntoSegments = (text) => {
+        const maxWordsPerSegment = 32;
+        const sentences = text.split(/([.!?:])/);
+        const segments = [];
+        let currentSegment = "";
+        sentences.forEach((sentence) => {
+          if (sentence.match(/[.!?:]/)) {
+            if (currentSegment) {
+              segments.push(currentSegment);
+              currentSegment = "";
+            }
+            segments.push(sentence.trim());
+          } else {
+            const words = sentence.split(/\s+/);
+            words.forEach((word) => {
+              if (currentSegment.split(/\s+/).length < maxWordsPerSegment) {
+                if (currentSegment.endsWith(".") && word === "com") {
+                  currentSegment = currentSegment.slice(0, -1) + word;
+                } else {
+                  currentSegment += (currentSegment ? " " : "") + word;
+                }
+              } else {
+                segments.push(currentSegment);
+                currentSegment = word;
+              }
+            });
+          }
+        });
+        if (currentSegment) {
+          segments.push(currentSegment);
+        }
+        return segments;
+      };
+      const segments = splitTextIntoSegments(text, 32);
+      const synthesizeSegments = () => {
+        if (segments.length === 0) {
+          setShowPlayPause(false);
+          setIsPlaying(false);
+          return;
+        }
+        const segment = segments.shift();
+        const utterance = new SpeechSynthesisUtterance(segment.replaceAll('Response:', '').replaceAll('.', '').replaceAll('!', '').replaceAll('?', '').replaceAll(":", ""));
+        utterance.voice = speechSynthesis.getVoices()[5];
+        utterance.onend = synthesizeSegments;
+        speechSynthesis.speak(utterance);
+      };
+      synthesizeSegments();
+    } else {
+      console.error("Speech synthesis is not supported or not ready");
+    }
+  };
 
   const stopSpeakText = () => {
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-  }
-};
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
+    }
+  };
 
   const toggleMute = () => {
-  // Invert the current state of toggle
-  setToggle(prevToggle => !prevToggle);
-  
-  // If currently speaking, stop it.
-  if (window.speechSynthesis.speaking) {
-    stopSpeakText();
-  }}
+    setToggle(prevToggle => !prevToggle);
+    if (window.speechSynthesis.speaking) {
+      stopSpeakText();
+    }
+  };
 
   const pause = () => {
-    if(isPlaying){speechSynthesis.pause(); setIsPlaying(false)}
-    else{resume(); setIsPlaying(true)}
-   }
+    if (isPlaying) {
+      speechSynthesis.pause();
+      setIsPlaying(false);
+    } else {
+      resume();
+      setIsPlaying(true);
+    }
+  };
 
-  const resume = () => {speechSynthesis.resume()}
+  const resume = () => {
+    speechSynthesis.resume();
+  };
 
   const updateConversationHistory = (newEntry) => {
     const delimiter = "|||";
     let conversationHistory = localStorage.getItem("conversationHistory");
-  
     if (conversationHistory === null) {
       localStorage.setItem("conversationHistory", newEntry);
     } else {
-      // Remove duplicates
       conversationHistory = conversationHistory.split(delimiter);
       conversationHistory = conversationHistory.filter(entry => !newEntry.includes(entry));
       conversationHistory = conversationHistory.join(delimiter);
-  
-      // Add new entry to the end of conversation history
       conversationHistory += newEntry;
       localStorage.setItem("conversationHistory", conversationHistory);
     }
-  }
-  
+  };
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1 style={{ color: 'lightgreen', }}>╬alkbot-βeta_llama</h1>
+        <h1 style={{ color: 'lightgreen' }}>╬alkbot-βeta_llama</h1>
         <div id="dick"></div>
         <div className="buttons-container">
-
-{windowWidth >= 468 ? (
-        <button onClick={() => startRecording()} type="button">
-          Start
-        </button>
-      ) : null}
-
+          {window.innerWidth >= 468 && (
+            <button onClick={startRecording} type="button">
+              Start
+            </button>
+          )}
           <button
             onClick={() => {
               stopSpeakText();
-              setIsPlaying(false)
-            setShowPlayPause(false)
-              setRez("");
+              setIsPlaying(false);
+              setShowPlayPause(false);
               setEnteredText("");
             }}
             type="button"
           >
             Stop
           </button>
-
-          {isPlaying ? <button onClick={()=>{toggleMute()}} type="button">
-             Mute
-          </button> : '' }
-
-          { showPlayPause ?
-          <button onClick={()=>{pause();}} type="button">
-             {isPlaying ? 'Pause' : 'Play'}
-          </button> : ''}
+          {isPlaying && (
+            <button onClick={toggleMute} type="button">
+              Mute
+            </button>
+          )}
+          {showPlayPause && (
+            <button onClick={pause} type="button">
+              {isPlaying ? 'Pause' : 'Play'}
+            </button>
+          )}
         </div>
         <div className="transcript-container"></div>
         <div>
-        <textarea
-  ref={inputRef}
-  style={{
-    background: "black",
-    color: "lightgreen",
-    borderRadius: ".6em",
-    fontWeight: 'bold',
-    width: "80vw",
-    height: "auto",
-    minHeight: "1.2rem",  // Match the initial font size
-    textAlign: "center",
-    fontSize: '1.2rem',
-    overflow: 'auto',
-    resize: 'none',
-    boxSizing: 'border-box',
-  }}
-  value={enteredText}
-  onChange={(event) => {
-    setEnteredText(event.target.value);
-    setInterimTranscript("");
-    setFinalTranscript("");
-  }}
-  placeholder="Enter your question"
-  // send query on Enter key
-  // onKeyDown={(event) => {
-  //   if (event.key === "Enter") {
-  //     handleGreeting(enteredText);
-  //   }
-  // }}
-/>
-          <br />
-          <br />
-          <button type='button'
-            onClick={() => {
-              handleGreeting(enteredText);
-              console.log(enteredText)
+          <textarea
+            ref={inputRef}
+            style={{
+              background: "black",
+              color: "lightgreen",
+              borderRadius: ".6em",
+              fontWeight: 'bold',
+              width: "80vw",
+              height: "auto",
+              minHeight: "1.2rem",
+              textAlign: "center",
+              fontSize: '1.2rem',
+              overflow: 'auto',
+              resize: 'none',
+              boxSizing: 'border-box',
             }}
-          >
+            value={enteredText}
+            onChange={(event) => {
+              setEnteredText(event.target.value);
+              setInterimTranscript("");
+            }}
+            placeholder="Enter your question"
+          />
+          <br />
+          <br />
+          <button type="button" onClick={() => handleGreeting(enteredText)}>
             Send
           </button>
           <button
-  onClick={() => {
-    const confirmClear = window.confirm(
-      "Clear the conversation history?"
-    );
-    if (confirmClear) {
-      localStorage.removeItem("conversationHistory");
-      setConversationHistory("");
-      setEnteredText("");
-      setRez("");
-      setResponse("");
-      setShowPlayPause(false)
-    }
-  }}
->
-  Reset
-</button>
-
-<button
-  onClick={() => {
-downloadConvo()
-  }}
->
-  Save
-</button>
+            onClick={() => {
+              const confirmClear = window.confirm(
+                "Clear the conversation history?"
+              );
+              if (confirmClear) {
+                localStorage.removeItem("conversationHistory");
+                setEnteredText("");
+                setResponse("");
+                setShowPlayPause(false);
+              }
+            }}
+          >
+            Reset
+          </button>
+          <button onClick={downloadConvo}>
+            Save
+          </button>
         </div>
         <div
           style={{
@@ -479,14 +358,26 @@ downloadConvo()
             textStrokeWidth: "4px",
           }}
         >
-         <p  style={{maxHeight: "50vh", fontSize: '1.3rem',
-          overflow: "auto", width: "90vw", 
-          margin: 'auto', marginTop: '1%', fontWeight: 'bold', 
-          color: 'lightgreen', textAlign: 'center',  whiteSpace: 'pre-wrap'}}>
-            {rez}</p>
+          <p
+            style={{
+              maxHeight: "50vh",
+              fontSize: '1.3rem',
+              overflow: "auto",
+              width: "90vw",
+              margin: 'auto',
+              marginTop: '1%',
+              fontWeight: 'bold',
+              color: 'lightgreen',
+              textAlign: 'center',
+              whiteSpace: 'pre-wrap'
+            }}
+          >
+            {theResponse}
+          </p>
         </div>
       </header>
     </div>
   );
 }
+
 export default App;
