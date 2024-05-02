@@ -10,6 +10,9 @@ best i can think of would be three different calls, so the front end hits a diff
 AMAZING *** first and second completions can be DIFFERENT MODELS. Holy shit thats cool.
 
 server.js = original chatGPT completions model, which still wins so far.
+server-llama.js = groq implementation of llama3 or mixtral. openai seems best still at this point for this application. lol
+
+App-og.js = original GPT-3.5 implementation and front end prompts. 
 
 Simply string apis together, line up your prompts and magic! A little friend, with amnesia.
 Built using gpt-3.5-turbo-0613.
