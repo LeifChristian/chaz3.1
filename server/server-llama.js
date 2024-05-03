@@ -8,8 +8,8 @@ const axios = require('axios')
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-const MODEL = 'mixtral-8x7b-32768';
-//const MODEL = 'llama3-8b-8192'
+// const MODEL = 'mixtral-8x7b-32768';
+const MODEL = 'llama3-8b-8192'
 
 app.use(cors());
 app.use(express.json());

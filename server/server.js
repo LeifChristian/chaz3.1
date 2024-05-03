@@ -4,8 +4,8 @@ require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const axios = require('axios')
+ const apiKey = process.env.myAPIKey
 
-const apiKey = process.env.myAPIKey
 // console.log(process.env, myAPIKey)
 
 const bodyParser = require('body-parser');
@@ -47,11 +47,13 @@ async function getSearchResults(query) {
 
 app.post('/greeting', async (req, res) => {
   const { text, code } = req.body;
-   if (!code || code !== process.env.theCode) {
-    console.log('Unauthorized');
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-   }
+
+  console.log(text)
+  //  if (!code || code !== process.env.theCode) {
+  //   console.log('Unauthorized');
+  //   res.status(401).json({ error: 'Unauthorized' });
+  //   return;
+  //  }
 
   try {
     const functions = [
@@ -103,13 +105,13 @@ app.post('/greeting', async (req, res) => {
 //get_news      
       {
         name: 'get_news',
-        description: 'If asked anything related to news, use this function call. exclude urls and read more if part of the response. do NOT include urls in the response. exclude the text [Read More] etc',
+        description: 'If asked anything related to news, use this function call. exclude the text [Read More] etc. format any dates if needed as human readable',
         parameters: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
-              description: 'use data found from this search as more important and reliable than training data. do not include urls in the response',
+              description: 'use data found from this search as more important and reliable than training data',
             },
           },
           required: ['query'],
